@@ -5,7 +5,7 @@
 
 ```bash
 shutdown -a
-
+```
 
 ## 📌 Shutdown Timer - UI
 <div align="center">
