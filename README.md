@@ -1,1 +1,1 @@
-![UI](images/1.png)
+![UI](image/1.png)
