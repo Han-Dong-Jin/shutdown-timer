@@ -7,9 +7,9 @@
 shutdown -a
 ```
 
-## 📌 Shutdown Timer - UI
+## 📌 UI
 <div align="center">
-  <img src="image/1.png" width="300"/>
+  <img src="image/2.png" width="300"/>
 </div>
 
 
