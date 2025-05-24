@@ -7,13 +7,13 @@
 shutdown -a
 ```
 
-## 📌 Shutdown Timer - UI
+## 📌 UI
 <div align="center">
-  <img src="image/1.png" width="300"/>
+  <img src="image/2.png" width="300"/>
 </div>
 
 
-## 📦 Download
+## 📌 Download
 [![Latest Release](https://img.shields.io/github/v/release/Han-Dong-Jin/shutdown-timer?label=Latest%20Release)](https://github.com/Han-Dong-Jin/shutdown-timer/releases/latest)
 
 
