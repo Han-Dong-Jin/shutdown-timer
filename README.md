@@ -13,7 +13,7 @@ shutdown -a
 </div>
 
 
-## 📦 Download
+## 📌 Download
 [![Latest Release](https://img.shields.io/github/v/release/Han-Dong-Jin/shutdown-timer?label=Latest%20Release)](https://github.com/Han-Dong-Jin/shutdown-timer/releases/latest)
 
 
