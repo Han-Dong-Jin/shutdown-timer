@@ -5,7 +5,10 @@ a = Analysis(
     ['src\\shutdown_timer.py'],
     pathex=['src'],
     binaries=[],
-    datas=[('src/SD.ico', '.')],
+    datas=[
+        ('src/SD.ico', '.'),
+        ('src/st.ui', '.'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

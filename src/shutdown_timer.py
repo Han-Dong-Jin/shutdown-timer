@@ -1,86 +1,177 @@
 import sys
 import os
 import subprocess
+import time
+from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
-from PyQt5.QtCore import QTimer, QTime
-from PyQt5.QtGui import QIcon
-from shutdown_timer_ui import Ui_ShutdownTimer  # pyuic5로 생성한 코드 임포트
+from PyQt5.QtCore import QTimer, QTime, QThread, pyqtSignal
+from PyQt5.QtGui import QIcon, QPalette, QColor
 
 
-class ShutdownApp(QWidget, Ui_ShutdownTimer):
+class TimerThread(QThread):
+    tick = pyqtSignal(int)
+
+    def __init__(self, total_seconds: int):
+        super().__init__()
+        self.total = total_seconds
+        self._running = True
+
+    def run(self):
+        start_time = time.time()
+        while self._running:
+            elapsed = int(time.time() - start_time)
+            remaining = self.total - elapsed
+
+            if remaining <= 0:
+                self.tick.emit(0)
+                break
+
+            self.tick.emit(remaining)
+            time.sleep(1)
+
+    def stop(self):
+        self._running = False
+
+
+class ShutdownApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
-        self.setWindowTitle("Shutdown Timer")  # 창 제목 변경
-        icon_path = os.path.join(os.path.dirname(__file__), "SD.ico")
-        self.setWindowIcon(QIcon(icon_path))
 
-        # 타이머 관련 초기화
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_lcd)
-        self.remaining_seconds = 0
+        self.blink_count = 0
+        self.blinking = False
+        self.color_change_time = 20
+        self.timer_status = False
+        self.timer_thread = None
+        self.timer_active = False
 
-        # 프리셋 버튼 → QTimeEdit에 설정
-        self.pushButton_8.clicked.connect(lambda: self.set_timeedit(minutes=15))  # 15m
-        self.pushButton_7.clicked.connect(lambda: self.set_timeedit(minutes=30))  # 30m
-        self.pushButton.clicked.connect(lambda: self.set_timeedit(hours=1))  # 1h
-        self.pushButton_4.clicked.connect(lambda: self.set_timeedit(hours=2))  # 2h
-        self.pushButton_3.clicked.connect(lambda: self.set_timeedit(hours=3))  # 3h
-        self.pushButton_6.clicked.connect(lambda: self.set_timeedit(minutes=45))  # 45m
+        base_dir = os.path.dirname(__file__)
+        uic.loadUi(os.path.join(base_dir, "st.ui"), self)
+        self.setWindowTitle("Shutdown Timer")
+        self.setWindowIcon(QIcon(os.path.join(base_dir, "SD.ico")))
+        self.lcdNumber.display("00:00:00")
 
-        # Start / Stop 버튼
-        self.pushButton_9.clicked.connect(self.start_timer)  # Start
-        self.pushButton_10.clicked.connect(self.stop_timer)  # Stop
+        # 버튼 연결
+        self.pushButton.clicked.connect(lambda: self.set_timeedit(hours=1))
+        self.pushButton_4.clicked.connect(lambda: self.set_timeedit(hours=2))
+        self.pushButton_3.clicked.connect(lambda: self.set_timeedit(hours=3))
+        self.pushButton_8.clicked.connect(lambda: self.set_timeedit(minutes=15))
+        self.pushButton_7.clicked.connect(lambda: self.set_timeedit(minutes=30))
+        self.pushButton_6.clicked.connect(lambda: self.set_timeedit(minutes=45))
+        self.pushButton_9.clicked.connect(self.start_timer)
+        self.pushButton_10.clicked.connect(self.stop_timer)
+        self.pushButton_2.clicked.connect(self.reset_timeedit)
+        self.pushButton_5.toggled.connect(self.set_shutdown_toggle)
 
-        self.pushButton_2.clicked.connect(self.reset_timeedit)  # reset
+    def set_shutdown_toggle(self, status: bool):
+        self.timer_status = status
+        self.label.setText("🟢" if status else "🔴")
 
     def reset_timeedit(self):
         self.timeEdit.setTime(QTime(0, 0))
 
     def set_timeedit(self, hours: int = None, minutes: int = None):
-        """
-        QTimeEdit에 시/분을 설정하되, 인자가 없으면 기존 값을 유지
-        """
-        current_time = self.timeEdit.time()
-        h = current_time.hour() if hours is None else hours
-        m = current_time.minute() if minutes is None else minutes
+        time = self.timeEdit.time()
+        h = hours if hours is not None else time.hour()
+        m = minutes if minutes is not None else time.minute()
         self.timeEdit.setTime(QTime(h, m))
 
     def start_timer(self):
-        """Start 버튼: shutdown 예약 + 타이머 시작"""
-        time = self.timeEdit.time()
-        self.remaining_seconds = time.hour() * 3600 + time.minute() * 60
-
-        if self.remaining_seconds == 0:
-            QMessageBox.warning(self, "알림", "0보다 큰 시간을 설정해주세요.")
+        if self.timer_thread and self.timer_thread.isRunning():
             return
 
-        # 시스템 종료 예약
-        subprocess.run(f"shutdown -s -t {self.remaining_seconds}", shell=True)
+        time_val = self.timeEdit.time()
+        total_seconds = (
+            time_val.hour() * 3600 + time_val.minute() * 60 + time_val.second()
+        )
 
-        # LCD 표시 시작
-        self.update_lcd()
-        self.timer.start(1000)
+        if total_seconds == 0:
+            QMessageBox.warning(self, "Notice", "Please set a time greater than 0.")
+            return
+
+        if not self.timer_status:
+            subprocess.run(f"shutdown -s -t {total_seconds}", shell=True)
+
+        self.timer_active = True
+        self._start_thread_timer(total_seconds)
+        self.lcdNumber.display(self._format_time(total_seconds))
+        self._set_lcd_color(QColor(0, 0, 0))
 
     def stop_timer(self):
-        """Stop 버튼: shutdown 취소 + 타이머 중지"""
+        self.timer_active = False
         subprocess.run("shutdown -a", shell=True)
-        self.timer.stop()
-        self.remaining_seconds = 0
-        self.lcdNumber.display("00:00:00")
 
-    def update_lcd(self):
-        """1초마다 LCD에 남은 시간 표시"""
-        if self.remaining_seconds <= 0:
-            self.timer.stop()
-            self.lcdNumber.display("00:00:00")
+        self.lcdNumber.display("00:00:00")
+        self._set_lcd_color(QColor(0, 0, 0))
+        self.reset_timeedit()
+
+        if hasattr(self, "blink_timer") and self.blink_timer.isActive():
+            self.blink_timer.stop()
+
+        if self.timer_thread:
+            try:
+                self.timer_thread.tick.disconnect()
+            except Exception:
+                pass
+            self.timer_thread.stop()
+            self.timer_thread.wait()
+            self.timer_thread = None
+
+        self.blinking = False
+        self.blink_count = 0
+
+    def _start_thread_timer(self, total_seconds: int):
+        self.timer_thread = TimerThread(total_seconds)
+        self.timer_thread.tick.connect(self.update_lcd_from_thread)
+        self.timer_thread.start()
+
+    def update_lcd_from_thread(self, remaining):
+        if not self.timer_active:
             return
 
-        hours, remainder = divmod(self.remaining_seconds, 3600)
-        mins, secs = divmod(remainder, 60)
-        display_time = f"{hours:02}:{mins:02}:{secs:02}"
-        self.lcdNumber.display(display_time)
-        self.remaining_seconds -= 1
+        if remaining > 0:
+            self.lcdNumber.display(self._format_time(remaining))
+
+            if remaining <= self.color_change_time:
+                ratio = (self.color_change_time - remaining) / self.color_change_time
+                red = int(255 * ratio)
+                self._set_lcd_color(QColor(red, 0, 0))
+            else:
+                self._set_lcd_color(QColor(0, 0, 0))
+        else:
+            self._start_blinking()
+
+    def _start_blinking(self):
+        if self.blinking:
+            return
+
+        self.blinking = True
+        self.blink_count = 0
+
+        self.blink_timer = QTimer(self)
+        self.blink_timer.timeout.connect(self.blink_lcd)
+        self.blink_timer.start(200)
+
+    def blink_lcd(self):
+        if self.blink_count >= 10:
+            self.blink_timer.stop()
+            self.blinking = False
+            self._set_lcd_color(QColor(0, 0, 0))
+            return
+
+        self.blink_count += 1
+        color = QColor(255, 0, 0) if self.blink_count % 2 == 0 else QColor(0, 0, 0)
+        self.lcdNumber.display("00:00:00")
+        self._set_lcd_color(color)
+
+    def _format_time(self, seconds: int):
+        h, r = divmod(seconds, 3600)
+        m, s = divmod(r, 60)
+        return f"{h:02}:{m:02}:{s:02}"
+
+    def _set_lcd_color(self, color: QColor):
+        palette = self.lcdNumber.palette()
+        palette.setColor(QPalette.WindowText, color)
+        self.lcdNumber.setPalette(palette)
 
 
 if __name__ == "__main__":
