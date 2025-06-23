@@ -62,6 +62,7 @@ class ShutdownApp(QWidget):
         self.pushButton_2.clicked.connect(self.reset_timeedit)
         self.pushButton_5.toggled.connect(self.set_shutdown_toggle)
 
+    # ========== UI 동작 관련 ==========
     def set_shutdown_toggle(self, status: bool):
         self.timer_status = status
         self.label.setText("🟢" if status else "🔴")
@@ -75,30 +76,30 @@ class ShutdownApp(QWidget):
         m = minutes if minutes is not None else time.minute()
         self.timeEdit.setTime(QTime(h, m))
 
-    def start_timer(self):
-        if self.timer_thread and self.timer_thread.isRunning():
-            return
+    def _set_lcd_color(self, color: QColor):
+        palette = self.lcdNumber.palette()
+        palette.setColor(QPalette.WindowText, color)
+        self.lcdNumber.setPalette(palette)
 
+    def _format_time(self, seconds: int):
+        h, r = divmod(seconds, 3600)
+        m, s = divmod(r, 60)
+        return f"{h:02}:{m:02}:{s:02}"
+
+    # ========== 타이머 시작/종료 ==========
+    def get_total_seconds_from_timeedit(self) -> int:
         time_val = self.timeEdit.time()
-        total_seconds = (
-            time_val.hour() * 3600 + time_val.minute() * 60 + time_val.second()
-        )
+        return time_val.hour() * 3600 + time_val.minute() * 60 + time_val.second()
 
-        if total_seconds == 0:
-            QMessageBox.warning(self, "Notice", "Please set a time greater than 0.")
-            return
-
-        if not self.timer_status:
-            subprocess.run(f"shutdown -s -t {total_seconds}", shell=True)
-
+    def initialize_timer(self, total_seconds: int):
         self.timer_active = True
         self._start_thread_timer(total_seconds)
         self.lcdNumber.display(self._format_time(total_seconds))
         self._set_lcd_color(QColor(0, 0, 0))
 
-    def stop_timer(self):
+    def finalize_timer(self):
         self.timer_active = False
-        subprocess.run("shutdown -a", shell=True)
+        subprocess.run("shutdown -a", shell=True)  # 예약 취소
 
         self.lcdNumber.display("00:00:00")
         self._set_lcd_color(QColor(0, 0, 0))
@@ -119,11 +120,26 @@ class ShutdownApp(QWidget):
         self.blinking = False
         self.blink_count = 0
 
+    def start_timer(self):
+        if self.timer_thread and self.timer_thread.isRunning():
+            return
+
+        total_seconds = self.get_total_seconds_from_timeedit()
+        if total_seconds == 0:
+            QMessageBox.warning(self, "Notice", "Please set a time greater than 0.")
+            return
+
+        self.initialize_timer(total_seconds)
+
+    def stop_timer(self):
+        self.finalize_timer()
+
     def _start_thread_timer(self, total_seconds: int):
         self.timer_thread = TimerThread(total_seconds)
         self.timer_thread.tick.connect(self.update_lcd_from_thread)
         self.timer_thread.start()
 
+    # ========== 타이머 스레드 콜백 ==========
     def update_lcd_from_thread(self, remaining):
         if not self.timer_active:
             return
@@ -138,8 +154,16 @@ class ShutdownApp(QWidget):
             else:
                 self._set_lcd_color(QColor(0, 0, 0))
         else:
+            if not self.timer_status:
+                self.execute_shutdown()
+
             self._start_blinking()
 
+    # ========== 종료 명령 ==========
+    def execute_shutdown(self):
+        subprocess.run("shutdown -s -t 0", shell=True)
+
+    # ========== 깜빡임 관련 ==========
     def _start_blinking(self):
         if self.blinking:
             return
@@ -162,16 +186,6 @@ class ShutdownApp(QWidget):
         color = QColor(255, 0, 0) if self.blink_count % 2 == 0 else QColor(0, 0, 0)
         self.lcdNumber.display("00:00:00")
         self._set_lcd_color(color)
-
-    def _format_time(self, seconds: int):
-        h, r = divmod(seconds, 3600)
-        m, s = divmod(r, 60)
-        return f"{h:02}:{m:02}:{s:02}"
-
-    def _set_lcd_color(self, color: QColor):
-        palette = self.lcdNumber.palette()
-        palette.setColor(QPalette.WindowText, color)
-        self.lcdNumber.setPalette(palette)
 
 
 if __name__ == "__main__":

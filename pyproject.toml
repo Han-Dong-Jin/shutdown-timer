@@ -12,8 +12,8 @@ dependencies = [
     "pyqt5-tools (>=5.15.9.3.3,<6.0.0.0.0)"
 ]
 
-[tool.poetry]
-packages = [{include = "shutdown_timer", from = "src"}]
+[tool.setuptools.packages.find]
+where = ["."]
 
 
 [tool.poetry.group.dev.dependencies]
