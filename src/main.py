@@ -2,13 +2,39 @@ import sys
 import os
 import glob
 import subprocess
-import time
 import json
 from pathlib import Path
 from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
-from PyQt5.QtCore import QTimer, QTime, QThread, pyqtSignal
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QMessageBox,
+    QDialog,
+    QVBoxLayout,
+    QLCDNumber,
+)
+from PyQt5.QtCore import QTimer, QTime, Qt
 from PyQt5.QtGui import QIcon, QPalette, QColor, QFontDatabase
+
+
+class LcdPopup(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        if getattr(sys, "frozen", False):
+            base_dir = sys._MEIPASS
+        else:
+            base_dir = os.path.dirname(__file__)
+        uic.loadUi(os.path.join(base_dir, "lcd_popup.ui"), self)
+        self.setWindowTitle("LCD Popup")
+        self.setFixedSize(self.size())
+        self.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+
+    def set_value(self, value: str):
+        self.lcdNumber_popup.display(value)
+
+    def set_theme(self, palette: QPalette):
+        self.lcdNumber_popup.setPalette(palette)
+        self.lcdNumber_popup.setAutoFillBackground(True)
 
 
 class PresetConfigManager:
@@ -68,10 +94,11 @@ class ShutdownApp(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.lcd_popup = None
+
         self.shutdown_manager = ShutdownManager()
         self.config_manager = PresetConfigManager()
 
-        # QTimer 기반 타이머/스톱워치
         self.timer_qtimer = QTimer(self)
         self.timer_qtimer.timeout.connect(self.update_lcd_timer)
         self.timer_remaining = 0
@@ -86,7 +113,6 @@ class ShutdownApp(QWidget):
         self.blink_count = 0
         self.color_change_time = 20
 
-        # 모드별 timeEdit 값 저장용
         self.timer_time = QTime(0, 0, 0)
         self.stopwatch_time = QTime(0, 0, 0)
 
@@ -114,13 +140,10 @@ class ShutdownApp(QWidget):
         self.setWindowIcon(QIcon(os.path.join(base_dir, "SD.ico")))
         self.lcdNumber.display("00:00:00")
 
-        # Default mode: stopwatch
         self.timer_mode = False
         self.stopwatch_mode = True
         self.pushButton_5.setChecked(False)
         self.pushButton_11.setChecked(True)
-        # self.label.setText("🟢")  # 라벨 제거
-        # self.label_2.setText("🔴")  # 라벨 제거
         self.apply_preset_labels()
         self.checkBox.setEnabled(False)
 
@@ -140,26 +163,83 @@ class ShutdownApp(QWidget):
         self.pushButton_6.clicked.connect(lambda: self.apply_preset("preset_6"))
         self.pushButton_2.clicked.connect(self.reset_timeedit)
 
-        # self.pushButton_12.clicked.connect(self.open_config_file)
         self.timeEdit.timeChanged.connect(self.on_timeedit_changed)
 
-        # 라디오 버튼 연결 (radioButton: White, radioButton_2: Black)
         self.radioButton.toggled.connect(self.update_lcd_theme)
         self.radioButton_2.toggled.connect(self.update_lcd_theme)
         self.update_lcd_theme()
+
+        self._last_lcd_text = "00:00:00"
+
+        self.pushButton_popup.clicked.connect(self.show_lcd_popup)
+
+    def show_lcd_popup(self):
+        if self.lcd_popup is None or not self.lcd_popup.isVisible():
+            self.lcd_popup = LcdPopup(self)
+            self.lcd_popup.set_value(self._last_lcd_text)
+            self.lcd_popup.set_theme(self.lcdNumber.palette())
+            self.lcd_popup.show()
+        else:
+            self.lcd_popup.activateWindow()
+
+    def sync_lcd_popup(self):
+        if self.lcd_popup and self.lcd_popup.isVisible():
+            self.lcd_popup.set_value(self._last_lcd_text)
+            self.lcd_popup.set_theme(self.lcdNumber.palette())
+
+    def lcdNumber_display(self, value):
+        self._last_lcd_text = str(value)
+        self.lcdNumber.display(value)
+        self.sync_lcd_popup()
+
+    def update_lcd_timer(self):
+        if not self.timer_active or not self.timer_mode:
+            return
+        self.timer_remaining -= 1
+        if self.timer_remaining > 0:
+            self.lcdNumber_display(self._format_time(self.timer_remaining))
+            if self.timer_remaining <= 10:
+                self._set_lcd_color(QColor(255, 0, 0))
+                # 팝업도 색상 동기화
+                if self.lcd_popup and self.lcd_popup.isVisible():
+                    self.lcd_popup.set_theme(self.lcdNumber.palette())
+                    self.lcd_popup.set_value(self._format_time(self.timer_remaining))
+            else:
+                if self.radioButton_2.isChecked():
+                    self._set_lcd_color(QColor(255, 255, 255))
+                else:
+                    self._set_lcd_color(QColor(0, 0, 0))
+                # 팝업도 색상 동기화
+                if self.lcd_popup and self.lcd_popup.isVisible():
+                    self.lcd_popup.set_theme(self.lcdNumber.palette())
+                    self.lcd_popup.set_value(self._format_time(self.timer_remaining))
+        else:
+            self.lcdNumber_display("00:00:00")
+            self.timer_qtimer.stop()
+            self.timer_active = False
+            if self.checkBox.isChecked():
+                self.shutdown_manager.execute_shutdown()
+            self._start_blinking()
+
+    def update_lcd_stopwatch(self):
+        if not self.stopwatch_active:
+            return
+
+        self.stopwatch_elapsed += 1
+
+        if self.stopwatch_mode:
+            self.lcdNumber_display(self._format_time(self.stopwatch_elapsed))
 
     def on_timeedit_changed(self, qtime):
         if self.timer_mode:
             self.timer_time = qtime
         elif self.stopwatch_mode:
             self.stopwatch_time = qtime
-
-        # 각 모드별로 해당 타이머만 체크
         if (self.timer_mode and self.timer_active) or (
             self.stopwatch_mode and self.stopwatch_active
         ):
             return
-        self.lcdNumber.display(qtime.toString("HH:mm:ss"))
+        self.lcdNumber_display(qtime.toString("HH:mm:ss"))
 
     def reset_timeedit(self):
         if self.timer_mode:
@@ -171,7 +251,7 @@ class ShutdownApp(QWidget):
             self.stopwatch_mode and self.stopwatch_active
         ):
             return
-        self.lcdNumber.display("00:00:00")
+        self.lcdNumber_display("00:00:00")
 
     def apply_preset(self, key):
         mode = "timer" if self.timer_mode else "stopwatch"
@@ -187,41 +267,55 @@ class ShutdownApp(QWidget):
             self.stopwatch_mode and self.stopwatch_active
         ):
             return
-        self.lcdNumber.display(preset["time"])
+        self.lcdNumber_display(preset["time"])
 
     def timer_mode_clicked(self):
         if self.timer_mode:
             return
+
         self.timer_mode = True
         self.stopwatch_mode = False
         self.pushButton_5.setChecked(True)
         self.pushButton_11.setChecked(False)
         self.apply_preset_labels()
         self.checkBox.setEnabled(True)
-        if not self.timer_active:
+
+        if self.timer_active:
+            self.lcdNumber_display(self._format_time(self.timer_remaining))
+        else:
             self.timeEdit.setTime(self.timer_time)
-            self.lcdNumber.display(self.timer_time.toString("HH:mm:ss"))
-            if self.radioButton_2.isChecked():
-                self._set_lcd_color(QColor(255, 255, 255))
-            else:
-                self._set_lcd_color(QColor(0, 0, 0))
+            self.lcdNumber_display(self.timer_time.toString("HH:mm:ss"))
+
+        self._set_lcd_color(
+            QColor(255, 255, 255) if self.radioButton_2.isChecked() else QColor(0, 0, 0)
+        )
 
     def stopwatch_mode_clicked(self):
         if self.stopwatch_mode:
             return
+
         self.timer_mode = False
         self.stopwatch_mode = True
         self.pushButton_5.setChecked(False)
         self.pushButton_11.setChecked(True)
         self.apply_preset_labels()
         self.checkBox.setEnabled(False)
-        if not self.stopwatch_active:
+
+        if self.stopwatch_active:
+            display_value = self._format_time(self.stopwatch_elapsed)
+        else:
+            display_value = self.stopwatch_time.toString("HH:mm:ss")
             self.timeEdit.setTime(self.stopwatch_time)
-            self.lcdNumber.display(self.stopwatch_time.toString("HH:mm:ss"))
-            if self.radioButton_2.isChecked():
-                self._set_lcd_color(QColor(255, 255, 255))
-            else:
-                self._set_lcd_color(QColor(0, 0, 0))
+
+        self.lcdNumber_display(display_value)
+        self._set_lcd_color(
+            QColor(255, 255, 255) if self.radioButton_2.isChecked() else QColor(0, 0, 0)
+        )
+
+        # 팝업도 동기화
+        if self.lcd_popup and self.lcd_popup.isVisible():
+            self.lcd_popup.set_value(display_value)
+            self.lcd_popup.set_theme(self.lcdNumber.palette())
 
     def apply_preset_labels(self):
         mode = "timer" if self.timer_mode else "stopwatch"
@@ -261,46 +355,25 @@ class ShutdownApp(QWidget):
         self.timer_remaining = total
         self.timer_active = True
         self.timer_qtimer.start(1000)
-        # 타이머 모드일 때만 표시
         if self.timer_mode:
-            self.lcdNumber.display(self._format_time(self.timer_remaining))
-            if self.radioButton_2.isChecked():
-                self._set_lcd_color(QColor(255, 255, 255))
-            else:
-                self._set_lcd_color(QColor(0, 0, 0))
-
-    def update_lcd_timer(self):
-        if not self.timer_active or not self.timer_mode:
-            return
-        self.timer_remaining -= 1
-        if self.timer_remaining > 0:
-            self.lcdNumber.display(self._format_time(self.timer_remaining))
-            if self.timer_remaining <= 10:
-                self._set_lcd_color(QColor(255, 0, 0))
-            else:
-                if self.radioButton_2.isChecked():
-                    self._set_lcd_color(QColor(255, 255, 255))
-                else:
-                    self._set_lcd_color(QColor(0, 0, 0))
-        else:
-            self.lcdNumber.display("00:00:00")
-            self.timer_qtimer.stop()
-            self.timer_active = False
-            if self.checkBox.isChecked():
-                self.shutdown_manager.execute_shutdown()
-            self._start_blinking()
+            self.lcdNumber_display(self._format_time(self.timer_remaining))
+            self._set_lcd_color(
+                QColor(255, 255, 255)
+                if self.radioButton_2.isChecked()
+                else QColor(0, 0, 0)
+            )
 
     def stop_timer(self):
         self.timer_qtimer.stop()
         self.timer_active = False
         self.shutdown_manager.cancel_shutdown()
-        # 타이머 모드에서만 lcd를 timeEdit 값으로
         if self.timer_mode:
-            self.lcdNumber.display(self.timer_time.toString("HH:mm:ss"))
-            if self.radioButton_2.isChecked():
-                self._set_lcd_color(QColor(255, 255, 255))
-            else:
-                self._set_lcd_color(QColor(0, 0, 0))
+            self.lcdNumber_display(self.timer_time.toString("HH:mm:ss"))
+            self._set_lcd_color(
+                QColor(255, 255, 255)
+                if self.radioButton_2.isChecked()
+                else QColor(0, 0, 0)
+            )
         self.blinking = False
         self.blink_count = 0
 
@@ -311,27 +384,23 @@ class ShutdownApp(QWidget):
         self.stopwatch_active = True
         self.stopwatch_qtimer.start(1000)
         if self.stopwatch_mode:
-            self.lcdNumber.display(self._format_time(self.stopwatch_elapsed))
-            if self.radioButton_2.isChecked():
-                self._set_lcd_color(QColor(255, 255, 255))
-            else:
-                self._set_lcd_color(QColor(0, 0, 0))
-
-    def update_lcd_stopwatch(self):
-        if not self.stopwatch_active or not self.stopwatch_mode:
-            return
-        self.stopwatch_elapsed += 1
-        self.lcdNumber.display(self._format_time(self.stopwatch_elapsed))
+            self.lcdNumber_display(self._format_time(self.stopwatch_elapsed))
+            self._set_lcd_color(
+                QColor(255, 255, 255)
+                if self.radioButton_2.isChecked()
+                else QColor(0, 0, 0)
+            )
 
     def stop_stopwatch(self):
         self.stopwatch_qtimer.stop()
         self.stopwatch_active = False
         if self.stopwatch_mode:
-            self.lcdNumber.display(self.stopwatch_time.toString("HH:mm:ss"))
-            if self.radioButton_2.isChecked():
-                self._set_lcd_color(QColor(255, 255, 255))
-            else:
-                self._set_lcd_color(QColor(0, 0, 0))
+            self.lcdNumber_display(self.stopwatch_time.toString("HH:mm:ss"))
+            self._set_lcd_color(
+                QColor(255, 255, 255)
+                if self.radioButton_2.isChecked()
+                else QColor(0, 0, 0)
+            )
 
     def get_total_seconds_from_timeedit(self):
         t = self.timeEdit.time()
@@ -343,29 +412,24 @@ class ShutdownApp(QWidget):
         return f"{h:02}:{m:02}:{s:02}"
 
     def update_lcd_theme(self):
-        """radioButton(White), radioButton_2(Black)에 따라 LCD 배경/글자색 변경"""
         palette = self.lcdNumber.palette()
         if self.radioButton.isChecked():
-            # 흰 배경, 검은 글자
             palette.setColor(QPalette.WindowText, QColor(0, 0, 0))
             palette.setColor(QPalette.Background, QColor(255, 255, 255))
             palette.setColor(QPalette.Window, QColor(255, 255, 255))
         elif self.radioButton_2.isChecked():
-            # 검은 배경, 흰 글자
             palette.setColor(QPalette.WindowText, QColor(255, 255, 255))
             palette.setColor(QPalette.Background, QColor(0, 0, 0))
             palette.setColor(QPalette.Window, QColor(0, 0, 0))
         self.lcdNumber.setAutoFillBackground(True)
         self.lcdNumber.setPalette(palette)
+        if self.lcd_popup and self.lcd_popup.isVisible():
+            self.lcd_popup.set_theme(palette)
 
     def _set_lcd_color(self, color):
-        """글자색만 바꾸고 배경색은 라디오 버튼 테마 유지"""
         palette = self.lcdNumber.palette()
-        # 배경색은 update_lcd_theme에서만 관리
-        if self.radioButton_2.isChecked():
-            # black 모드에서는 흰색/빨간색만 허용
-            if color == QColor(0, 0, 0):
-                color = QColor(255, 255, 255)
+        if self.radioButton_2.isChecked() and color == QColor(0, 0, 0):
+            color = QColor(255, 255, 255)
         palette.setColor(QPalette.WindowText, color)
         self.lcdNumber.setPalette(palette)
 
@@ -382,14 +446,18 @@ class ShutdownApp(QWidget):
         if self.blink_count >= 10:
             self.blink_timer.stop()
             self.blinking = False
-            # 종료 후 테마에 맞는 색상 복원
-            if self.radioButton_2.isChecked():
-                self._set_lcd_color(QColor(255, 255, 255))
-            else:
-                self._set_lcd_color(QColor(0, 0, 0))
+            self._set_lcd_color(
+                QColor(255, 255, 255)
+                if self.radioButton_2.isChecked()
+                else QColor(0, 0, 0)
+            )
+            # 팝업도 색상 및 값 동기화
+            if self.lcd_popup and self.lcd_popup.isVisible():
+                self.lcd_popup.set_theme(self.lcdNumber.palette())
+                self.lcd_popup.set_value("00:00:00")
             return
+
         self.blink_count += 1
-        # black 모드에서는 빨간색/흰색만 번갈아 표시
         if self.radioButton_2.isChecked():
             color = (
                 QColor(255, 0, 0)
@@ -398,8 +466,13 @@ class ShutdownApp(QWidget):
             )
         else:
             color = QColor(255, 0, 0) if self.blink_count % 2 == 0 else QColor(0, 0, 0)
-        self.lcdNumber.display("00:00:00")
+
+        self.lcdNumber_display("00:00:00")
         self._set_lcd_color(color)
+        # 팝업에도 값과 색상 동기화
+        if self.lcd_popup and self.lcd_popup.isVisible():
+            self.lcd_popup.set_value("00:00:00")
+            self.lcd_popup.set_theme(self.lcdNumber.palette())
 
 
 if __name__ == "__main__":

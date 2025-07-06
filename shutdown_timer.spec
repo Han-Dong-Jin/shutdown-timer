@@ -7,8 +7,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('src/SD.ico', '.'),
-        ('src/st.ui', '.'),
-        ('fonts/*.ttf', 'fonts'),
+        ('src/*.ui', '.'),
     ],
     hiddenimports=[],
     hookspath=[],

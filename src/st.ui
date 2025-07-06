@@ -19,7 +19,7 @@
   <property name="minimumSize">
    <size>
     <width>400</width>
-    <height>100</height>
+    <height>90</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -129,22 +129,6 @@
          </widget>
         </item>
         <item>
-         <spacer name="verticalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>5</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
          <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
           <property name="spacing">
            <number>7</number>
@@ -152,6 +136,50 @@
           <property name="sizeConstraint">
            <enum>QLayout::SetDefaultConstraint</enum>
           </property>
+          <item>
+           <widget class="QPushButton" name="pushButton_popup">
+            <property name="maximumSize">
+             <size>
+              <width>70</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>-1</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Pop-up LCD window</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">
+QPushButton {
+	font-family: Arial;
+    font-size: 14px;
+    font-weight: normal;
+}</string>
+            </property>
+            <property name="text">
+             <string>Pop-up</string>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>30</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="autoDefault">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
           <item>
            <widget class="QPushButton" name="pushButton_11">
             <property name="minimumSize">
@@ -162,10 +190,10 @@
             </property>
             <property name="font">
              <font>
-              <family>나눔스퀘어_ac Bold</family>
+              <family>Arial</family>
               <pointsize>11</pointsize>
-              <weight>75</weight>
-              <bold>true</bold>
+              <weight>50</weight>
+              <bold>false</bold>
              </font>
             </property>
             <property name="cursor">
@@ -198,22 +226,6 @@ QPushButton:checked {
            </widget>
           </item>
           <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Fixed</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>30</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
            <widget class="QPushButton" name="pushButton_5">
             <property name="minimumSize">
              <size>
@@ -223,10 +235,10 @@ QPushButton:checked {
             </property>
             <property name="font">
              <font>
-              <family>나눔스퀘어_ac Bold</family>
+              <family>Arial</family>
               <pointsize>11</pointsize>
-              <weight>75</weight>
-              <bold>true</bold>
+              <weight>50</weight>
+              <bold>false</bold>
              </font>
             </property>
             <property name="cursor">
@@ -261,6 +273,22 @@ QPushButton:checked {
          </layout>
         </item>
         <item>
+         <widget class="Line" name="line_2">
+          <property name="frameShadow">
+           <enum>QFrame::Sunken</enum>
+          </property>
+          <property name="lineWidth">
+           <number>3</number>
+          </property>
+          <property name="midLineWidth">
+           <number>1</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
            <widget class="QRadioButton" name="radioButton">
@@ -272,7 +300,8 @@ QPushButton:checked {
             </property>
             <property name="font">
              <font>
-              <family>나눔고딕</family>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
               <weight>50</weight>
               <bold>false</bold>
              </font>
@@ -295,10 +324,14 @@ QPushButton:checked {
             </property>
             <property name="font">
              <font>
-              <family>나눔고딕</family>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
               <weight>50</weight>
               <bold>false</bold>
              </font>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
             </property>
             <property name="text">
              <string>Black</string>
@@ -306,7 +339,7 @@ QPushButton:checked {
            </widget>
           </item>
           <item>
-           <spacer name="horizontalSpacer_2">
+           <spacer name="horizontalSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -315,7 +348,7 @@ QPushButton:checked {
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>20</width>
+              <width>40</width>
               <height>20</height>
              </size>
             </property>
@@ -323,6 +356,15 @@ QPushButton:checked {
           </item>
           <item>
            <widget class="QCheckBox" name="checkBox">
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
+             </font>
+            </property>
             <property name="toolTip">
              <string>When you enable shutdown mode, the system shuts down when the timer shuts down</string>
             </property>
@@ -330,7 +372,7 @@ QPushButton:checked {
              <enum>Qt::LeftToRight</enum>
             </property>
             <property name="styleSheet">
-             <string notr="true">font: 63 9pt &quot;나눔고딕&quot;;</string>
+             <string notr="true"/>
             </property>
             <property name="text">
              <string>Shutdown Mod</string>
@@ -340,20 +382,20 @@ QPushButton:checked {
          </layout>
         </item>
         <item>
-         <spacer name="verticalSpacer_3">
+         <widget class="Line" name="line_3">
+          <property name="frameShadow">
+           <enum>QFrame::Sunken</enum>
+          </property>
+          <property name="lineWidth">
+           <number>3</number>
+          </property>
+          <property name="midLineWidth">
+           <number>1</number>
+          </property>
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Horizontal</enum>
           </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>5</height>
-           </size>
-          </property>
-         </spacer>
+         </widget>
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_2">
