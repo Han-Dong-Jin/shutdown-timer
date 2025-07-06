@@ -2,12 +2,13 @@
 
 
 a = Analysis(
-    ['src\\shutdown_timer.py'],
+    ['src\\main.py'],
     pathex=['src'],
     binaries=[],
     datas=[
         ('src/SD.ico', '.'),
         ('src/st.ui', '.'),
+        ('fonts/*.ttf', 'fonts'),
     ],
     hiddenimports=[],
     hookspath=[],

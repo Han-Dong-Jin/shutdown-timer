@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>370</height>
+    <height>400</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,13 +19,13 @@
   <property name="minimumSize">
    <size>
     <width>400</width>
-    <height>130</height>
+    <height>100</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>400</width>
-    <height>370</height>
+    <height>400</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -145,7 +145,7 @@
          </spacer>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
+         <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0">
           <property name="spacing">
            <number>7</number>
           </property>
@@ -153,22 +153,12 @@
            <enum>QLayout::SetDefaultConstraint</enum>
           </property>
           <item>
-           <widget class="QFrame" name="frame_2">
-            <property name="frameShape">
-             <enum>QFrame::StyledPanel</enum>
-            </property>
-            <property name="frameShadow">
-             <enum>QFrame::Raised</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QLabel" name="label">
             <property name="toolTip">
              <string>Green: ON, Red: Off</string>
             </property>
             <property name="text">
-             <string>🔴</string>
+             <string>🟢</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -176,7 +166,13 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_5">
+           <widget class="QPushButton" name="pushButton_11">
+            <property name="minimumSize">
+             <size>
+              <width>110</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="font">
              <font>
               <family>나눔스퀘어_ac</family>
@@ -202,7 +198,60 @@ QPushButton:pressed {
 }</string>
             </property>
             <property name="text">
-             <string>Timer-Mode</string>
+             <string>Stop-watch</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="toolTip">
+             <string>Green: ON, Red: Off</string>
+            </property>
+            <property name="text">
+             <string>🔴</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_5">
+            <property name="minimumSize">
+             <size>
+              <width>110</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <family>나눔스퀘어_ac</family>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton {
+    background-color: #e0e0e0;
+    color: #333;
+    border-radius: 8px;
+    padding: 6px;
+    border: 1px solid #bbb;
+    text-align: center;
+}
+
+QPushButton:pressed {
+    background-color: #1565c0;
+    color: white;
+}</string>
+            </property>
+            <property name="text">
+             <string>Timer</string>
             </property>
             <property name="checkable">
              <bool>true</bool>
@@ -212,7 +261,40 @@ QPushButton:pressed {
          </layout>
         </item>
         <item>
-         <spacer name="verticalSpacer">
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBox">
+            <property name="toolTip">
+             <string>When you enable shutdown mode, the system shuts down when the timer shuts down</string>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">font: 63 9pt &quot;나눔고딕&quot;;</string>
+            </property>
+            <property name="text">
+             <string>Shutdown Mod</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_3">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
