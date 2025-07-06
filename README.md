@@ -5,7 +5,10 @@
 ## 📌 UI
 
 <div align="center">
-  <img src="image/4.png" width="300"/>
+  <img src="image/5.png" width="300"/>
+</div>
+<div align="center">
+  <img src="image/5-1.png" width="300"/>
 </div>
 
 ## 📌 Download
