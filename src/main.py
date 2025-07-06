@@ -142,6 +142,7 @@ class ShutdownApp(QWidget):
 
         uic.loadUi(os.path.join(base_dir, "st.ui"), self)
         self.setWindowTitle("Shutdown Timer")
+        self.setWindowIcon(QIcon(os.path.join(base_dir, "SD.ico")))
         self.lcdNumber.display("00:00:00")
 
         # Default mode: stopwatch
